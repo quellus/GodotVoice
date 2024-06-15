@@ -1,0 +1,22 @@
+[gd_scene load_steps=4 format=3 uid="uid://dwjlxgg8bfv5t"]
+
+[ext_resource type="Script" path="res://VoicePlayer.cs" id="1_kkhbe"]
+[ext_resource type="AudioStream" uid="uid://bonhw1qq1a0g8" path="res://wah.wav" id="2_m1xwf"]
+
+[sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_tf2bg"]
+random_pitch = 1.25
+streams_count = 1
+stream_0/stream = ExtResource("2_m1xwf")
+stream_0/weight = 1.0
+
+[node name="Control" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_kkhbe")
+_voiceStream = SubResource("AudioStreamRandomizer_tf2bg")
+_testVoiceLine = "This is a Test!"
+_testVoiceLineDelay = 3.0
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="."]
