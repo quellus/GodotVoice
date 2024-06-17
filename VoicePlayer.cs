@@ -128,7 +128,6 @@ public partial class VoicePlayer : Node
 			_beepTimes.Enqueue(new BeepTime(_nextBeep, character));
 			if (breakAfter)
 			{
-				GD.Print("Breaking After");
 				_nextBeep += nextInterval;
 			}
 		}
