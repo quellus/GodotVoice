@@ -15,7 +15,12 @@ public partial class VoicePlayer : Node
 
 	[Export] private double _clearTime = 2.00;
 
-	[Export] private Array<BreakInterval> _breakIntervals = [new BreakInterval(0.2, " ", false), new BreakInterval(0.4, ".,;!?", false)];
+	[Export] private Array<BreakInterval> _breakIntervals = 
+		[
+			new BreakInterval(0.2, " ", false, false), 
+			new BreakInterval(0.4, ".,;!?", false, true),
+			new BreakInterval(0.0, "-", false, true)
+		];
 	
 	// Test Code
 	[ExportGroup("Debug Settings")]
@@ -98,26 +103,33 @@ public partial class VoicePlayer : Node
 	// ReSharper disable once MemberCanBePrivate.Global
 	public void VoiceLine(string lineToVoice, double extraDelay = 0.0)
 	{
-		if (_nextBeep < _clock + _beepInterval + extraDelay)
+		if (_nextBeep < _clock + extraDelay)
 		{
-			_nextBeep = _clock + _beepInterval + extraDelay;
+			_nextBeep = _clock + extraDelay;
 		}
 
 		foreach (var character in lineToVoice)
 		{
-			var updated = false;
+			var nextInterval = _beepInterval;
+			var breakAfter = false;
 			foreach (var interval in _breakIntervals)
 			{
 				if (!interval.CharSet.Contains(character)) continue;
-				updated = true;
-				_nextBeep += interval.Interval;
+				nextInterval = interval.Interval;
+				breakAfter = interval.BreakAfter;
 				break;
 			}
-			
-			_beepTimes.Enqueue(new BeepTime(_nextBeep, character));
-			if (!updated)
+
+
+			if (!breakAfter)
 			{
-				_nextBeep += _beepInterval;
+				_nextBeep += nextInterval;
+			}
+			_beepTimes.Enqueue(new BeepTime(_nextBeep, character));
+			if (breakAfter)
+			{
+				GD.Print("Breaking After");
+				_nextBeep += nextInterval;
 			}
 		}
 

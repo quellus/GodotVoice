@@ -16,7 +16,7 @@ offset_bottom = 40.0
 script = ExtResource("1_kkhbe")
 _voiceStream = ExtResource("2_m1xwf")
 _voiceLabel = NodePath("../Label")
-_testVoiceLine = "This is a test! How did I do?"
+_testVoiceLine = "Instantly-Hyphenated Text is awesome!"
 _testVoiceLineDelay = 1.0
 
 [node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="TextController"]
