@@ -1,7 +1,6 @@
-[gd_scene load_steps=3 format=3 uid="uid://dwjlxgg8bfv5t"]
+[gd_scene load_steps=2 format=3 uid="uid://dwjlxgg8bfv5t"]
 
-[ext_resource type="Script" path="res://VoicePlayer.cs" id="1_kkhbe"]
-[ext_resource type="AudioStream" uid="uid://bonhw1qq1a0g8" path="res://wah.wav" id="2_m1xwf"]
+[ext_resource type="PackedScene" uid="uid://uaqfjciu8jef" path="res://lib/VoiceController.tscn" id="1_0s7am"]
 
 [node name="Control" type="Control"]
 layout_mode = 3
@@ -9,17 +8,8 @@ anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
 
-[node name="TextController" type="Control" parent="." node_paths=PackedStringArray("_voiceLabel")]
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
-script = ExtResource("1_kkhbe")
-_voiceStream = ExtResource("2_m1xwf")
+[node name="TextController" parent="." node_paths=PackedStringArray("_voiceLabel") instance=ExtResource("1_0s7am")]
 _voiceLabel = NodePath("../Label")
-_testVoiceLine = "Instantly-Hyphenated Text is awesome!"
-_testVoiceLineDelay = 1.0
-
-[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="TextController"]
 
 [node name="Label" type="Label" parent="."]
 layout_mode = 0
