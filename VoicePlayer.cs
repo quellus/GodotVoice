@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.ComponentModel;
 using Godot;
 using Godot.Collections;
 
@@ -8,14 +7,15 @@ namespace Voice;
 public partial class VoicePlayer : Node
 {
 	private AudioStreamPlayer _audioStreamPlayer;
-	[ExportGroup("Voice")]
+	[ExportGroup("External Objects")]
 	[Export] private AudioStream _voiceStream;
+	[Export] private Label _voiceLabel;
 	[ExportGroup("Pause Intervals")]
 	[Export] private double _beepInterval = 0.075;
 
-	[Export] private Array<BreakInterval> _breakIntervals = [new BreakInterval(0.2, " ", false), new BreakInterval(0.4, ".,;!?", false)];
+	[Export] private double _clearTime = 2.00;
 
-	[Signal] public delegate void OnVoiceBeepEventHandler();
+	[Export] private Array<BreakInterval> _breakIntervals = [new BreakInterval(0.2, " ", false), new BreakInterval(0.4, ".,;!?", false)];
 	
 	// Test Code
 	[ExportGroup("Debug Settings")]
@@ -24,7 +24,21 @@ public partial class VoicePlayer : Node
 	
 	// Internal State Variables, Queued up Plays
 	private double _clock;
-	private readonly Queue<double> _beepTimes = [];
+	private double _nextBeep = -1;
+
+	private struct BeepTime
+	{
+		public double Time;
+		public char Character;
+
+		public BeepTime(double time, char character)
+		{
+			Character = character;
+			Time = time;
+		}
+	}
+	
+	private readonly Queue<BeepTime> _beepTimes = [];
 
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
@@ -51,45 +65,63 @@ public partial class VoicePlayer : Node
 		if (!ShouldBeep()) return;
 		_audioStreamPlayer.Stop();
 		_audioStreamPlayer.Play();
-		EmitSignal(SignalName.OnVoiceBeep);
 	}
 
 	private bool ShouldBeep()
 	{
 		if (!_beepTimes.TryPeek(out var nextBeep)) return false;
-		if (!(nextBeep <= _clock)) return nextBeep <= _clock;
+		if (!(nextBeep.Time <= _clock)) return false;
 		_beepTimes.Dequeue();
-		return nextBeep <= _clock;
+		var beep = true;
+
+		if (nextBeep.Character != (char)0)
+		{
+			_voiceLabel.Text += nextBeep.Character;
+			
+			foreach (var interval in _breakIntervals)
+			{
+				if (interval.CharSet.Contains(nextBeep.Character) && !interval.ShouldBeep)
+				{
+					beep = false;
+				}
+			}
+		}
+		else
+		{
+			_voiceLabel.Text = "";
+			beep = false;
+		}
+		
+		return beep;
 	}
 	
 	// ReSharper disable once MemberCanBePrivate.Global
 	public void VoiceLine(string lineToVoice, double extraDelay = 0.0)
 	{
-		var nextBeep = _clock + _beepInterval + extraDelay;
+		if (_nextBeep < _clock + _beepInterval + extraDelay)
+		{
+			_nextBeep = _clock + _beepInterval + extraDelay;
+		}
 
 		foreach (var character in lineToVoice)
 		{
 			var updated = false;
-			var shouldBeep = true;
 			foreach (var interval in _breakIntervals)
 			{
 				if (!interval.CharSet.Contains(character)) continue;
 				updated = true;
-				shouldBeep = interval.ShouldBeep;
-				nextBeep += interval.Interval;
+				_nextBeep += interval.Interval;
 				break;
 			}
-
-			if (!shouldBeep)
-			{
-				continue;
-			}
 			
-			_beepTimes.Enqueue(nextBeep);
+			_beepTimes.Enqueue(new BeepTime(_nextBeep, character));
 			if (!updated)
 			{
-				nextBeep += _beepInterval;
+				_nextBeep += _beepInterval;
 			}
 		}
+
+		_nextBeep += _clearTime;
+		_beepTimes.Enqueue(new BeepTime(_nextBeep, (char)0));
 	}
 }
