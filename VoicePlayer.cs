@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Godot;
 using Godot.Collections;
@@ -30,21 +31,37 @@ public partial class VoicePlayer : Node
 	// Internal State Variables, Queued up Plays
 	private double _clock;
 	private double _nextBeep = -1;
+	private bool _mute;
+	private bool _muteText;
 
 	private struct BeepTime
 	{
-		public double Time;
-		public char Character;
+		public enum BeepType
+		{
+			Character,
+			Completed,
+			Cleared
+		}
+		public readonly double Time;
+		public readonly char Character;
+		public readonly BeepType Type;
 
-		public BeepTime(double time, char character)
+		public BeepTime(double time, char character, BeepType type)
 		{
 			Character = character;
 			Time = time;
+			Type = type;
 		}
 	}
 	
 	private readonly Queue<BeepTime> _beepTimes = [];
 
+	[Signal]
+	public delegate void OnVoiceCompleteEventHandler();
+
+	[Signal]
+	public delegate void OnVoiceClearEventHandler();
+	
 	// Called when the node enters the scene tree for the first time.
 	public override void _Ready()
 	{
@@ -59,7 +76,7 @@ public partial class VoicePlayer : Node
 
 		if (_testVoiceLine.Length > 0)
 		{
-			VoiceLine(_testVoiceLine, _testVoiceLineDelay);
+			GD.Print(VoiceLine(_testVoiceLine, _testVoiceLineDelay));
 		}
 	}
 
@@ -67,7 +84,7 @@ public partial class VoicePlayer : Node
 	public override void _Process(double delta)
 	{
 		_clock += delta;
-		if (!ShouldBeep()) return;
+		if (!ShouldBeep() || _mute) return;
 		_audioStreamPlayer.Stop();
 		_audioStreamPlayer.Play();
 	}
@@ -79,29 +96,40 @@ public partial class VoicePlayer : Node
 		_beepTimes.Dequeue();
 		var beep = true;
 
-		if (nextBeep.Character != (char)0)
+		switch (nextBeep.Type)
 		{
-			_voiceLabel.Text += nextBeep.Character;
-			
-			foreach (var interval in _breakIntervals)
-			{
-				if (interval.CharSet.Contains(nextBeep.Character) && !interval.ShouldBeep)
+			case BeepTime.BeepType.Character:
+				if (!_muteText)
 				{
-					beep = false;
+					_voiceLabel.Text += nextBeep.Character;
 				}
-			}
-		}
-		else
-		{
-			_voiceLabel.Text = "";
-			beep = false;
+			
+				foreach (var interval in _breakIntervals)
+				{
+					if (interval.CharSet.Contains(nextBeep.Character) && !interval.ShouldBeep)
+					{
+						beep = false;
+					}
+				}
+
+				break;
+			case BeepTime.BeepType.Completed:
+				HandleComplete();
+				beep = false;
+				break;
+			case BeepTime.BeepType.Cleared:
+				HandleClear();
+				beep = false;
+				break;
+			default:
+				throw new ArgumentOutOfRangeException();
 		}
 		
 		return beep;
 	}
 	
 	// ReSharper disable once MemberCanBePrivate.Global
-	public void VoiceLine(string lineToVoice, double extraDelay = 0.0)
+	public double VoiceLine(string lineToVoice, double extraDelay = 0.0)
 	{
 		if (_nextBeep < _clock + extraDelay)
 		{
@@ -125,14 +153,54 @@ public partial class VoicePlayer : Node
 			{
 				_nextBeep += nextInterval;
 			}
-			_beepTimes.Enqueue(new BeepTime(_nextBeep, character));
+
+			_beepTimes.Enqueue(new BeepTime(_nextBeep, character, BeepTime.BeepType.Character));
 			if (breakAfter)
 			{
 				_nextBeep += nextInterval;
 			}
 		}
 
+		// Calculating how long this text takes to print
+		var length = _nextBeep - _clock;
+		
+		_beepTimes.Enqueue(new BeepTime(_nextBeep, ' ', BeepTime.BeepType.Completed));
 		_nextBeep += _clearTime;
-		_beepTimes.Enqueue(new BeepTime(_nextBeep, (char)0));
+		_beepTimes.Enqueue(new BeepTime(_nextBeep, ' ', BeepTime.BeepType.Cleared));
+		
+		return length;
+	}
+
+	private void HandleComplete()
+	{
+		EmitSignal(SignalName.OnVoiceComplete);
+		_mute = false;
+		_muteText = false;
+	}
+
+	private void HandleClear()
+	{
+		EmitSignal(SignalName.OnVoiceClear);
+		_voiceLabel.Text = "";
+	}
+	
+	
+	// ReSharper disable once MemberCanBePrivate.Global
+	public void InterruptVoice()
+	{
+		_mute = true;
+	}
+
+	// ReSharper disable once MemberCanBePrivate.Global
+	public void InterruptText()
+	{
+		_muteText = true;
+	}
+
+	// ReSharper disable once MemberCanBePrivate.Global
+	public void ClearQueue()
+	{
+		_beepTimes.Clear();
+		HandleComplete();
 	}
 }
