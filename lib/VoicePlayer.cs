@@ -5,10 +5,11 @@ using Godot.Collections;
 
 namespace Voice;
 
+[GlobalClass]
 public partial class VoicePlayer : Node
 {
-	private AudioStreamPlayer _audioStreamPlayer;
 	[ExportGroup("External Objects")]
+	[Export] private AudioStreamPlayer _audioStreamPlayer;
 	[Export] private AudioStream _voiceStream;
 	[Export] private Label _voiceLabel;
 	[ExportGroup("Pause Intervals")]
@@ -70,13 +71,11 @@ public partial class VoicePlayer : Node
 			breakInterval.Initialize();
 		}
 		
-		_audioStreamPlayer = GetChild<AudioStreamPlayer>(0);
-		
 		_audioStreamPlayer.Stream = _voiceStream;
 
 		if (_testVoiceLine.Length > 0)
 		{
-			GD.Print(VoiceLine(_testVoiceLine, _testVoiceLineDelay));
+			VoiceLine(_testVoiceLine, _testVoiceLineDelay);
 		}
 	}
 
@@ -127,6 +126,19 @@ public partial class VoicePlayer : Node
 		
 		return beep;
 	}
+
+	private void HandleComplete()
+	{
+		EmitSignal(SignalName.OnVoiceComplete);
+		_mute = false;
+		_muteText = false;
+	}
+
+	private void HandleClear()
+	{
+		EmitSignal(SignalName.OnVoiceClear);
+		_voiceLabel.Text = "";
+	}
 	
 	// ReSharper disable once MemberCanBePrivate.Global
 	public double VoiceLine(string lineToVoice, double extraDelay = 0.0)
@@ -163,28 +175,14 @@ public partial class VoicePlayer : Node
 
 		// Calculating how long this text takes to print
 		var length = _nextBeep - _clock;
-		
+
 		_beepTimes.Enqueue(new BeepTime(_nextBeep, ' ', BeepTime.BeepType.Completed));
 		_nextBeep += _clearTime;
 		_beepTimes.Enqueue(new BeepTime(_nextBeep, ' ', BeepTime.BeepType.Cleared));
-		
+
 		return length;
 	}
 
-	private void HandleComplete()
-	{
-		EmitSignal(SignalName.OnVoiceComplete);
-		_mute = false;
-		_muteText = false;
-	}
-
-	private void HandleClear()
-	{
-		EmitSignal(SignalName.OnVoiceClear);
-		_voiceLabel.Text = "";
-	}
-	
-	
 	// ReSharper disable once MemberCanBePrivate.Global
 	public void InterruptVoice()
 	{
@@ -202,5 +200,6 @@ public partial class VoicePlayer : Node
 	{
 		_beepTimes.Clear();
 		HandleComplete();
+		_nextBeep = -1;
 	}
 }
