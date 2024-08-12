@@ -1,7 +1,7 @@
-[gd_scene load_steps=3 format=3 uid="uid://dwjlxgg8bfv5t"]
+[gd_scene load_steps=3 format=3 uid="uid://bgn0m1q1iqs4m"]
 
-[ext_resource type="Script" path="res://lib/VoicePlayer.cs" id="1_3q83m"]
-[ext_resource type="AudioStream" uid="uid://bonhw1qq1a0g8" path="res://wah.wav" id="2_m1xwf"]
+[ext_resource type="Script" path="res://lib/voice_player.gd" id="1_nu76t"]
+[ext_resource type="AudioStream" uid="uid://3wlye2717qrv" path="res://wah.wav" id="2_m1xwf"]
 
 [node name="Control" type="Control"]
 layout_mode = 3
@@ -19,9 +19,9 @@ offset_bottom = 591.0
 [node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="."]
 
 [node name="VoicePlayer" type="Node" parent="." node_paths=PackedStringArray("_audioStreamPlayer", "_voiceLabel")]
-script = ExtResource("1_3q83m")
+script = ExtResource("1_nu76t")
 _audioStreamPlayer = NodePath("../AudioStreamPlayer")
 _voiceStream = ExtResource("2_m1xwf")
 _voiceLabel = NodePath("../Label")
-_testVoiceLine = "This is a test! Yes it is!"
+_testVoiceLine = "\"This is a test! Yes it is!"
 _testVoiceLineDelay = 1.0
